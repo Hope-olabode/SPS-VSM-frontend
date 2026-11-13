@@ -7,30 +7,26 @@ import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTheme } from "../../../hooks/useTheme";
 import { api, ApiError } from "../../../lib/api";
+import Image from "next/image";
+import logoDark from "../../../../public/Logo dark.png";
+import logolight from "../../../../public/Logo light.png";
 
 function Brand() {
+  const { theme } = useTheme();
   return (
     <a
       href="#"
       aria-label="SPS home"
       className="mb-8 inline-flex items-center gap-2.5 font-[family-name:var(--font-space-grotesk)] text-[23px] font-bold leading-none tracking-[-0.03em] text-[#151520] no-underline dark:text-white"
     >
-      <svg className="h-9 w-9 text-green-600 dark:text-green-500" viewBox="0 0 64 64" fill="none" aria-hidden="true">
-        <path
-          d="M48 6H16C10.477 6 6 10.477 6 16v32c0 5.523 4.477 10 10 10h32c5.523 0 10-4.477 10-10V42"
-          stroke="currentColor"
-          strokeWidth="5"
-          strokeLinecap="round"
-        />
-        <path
-          d="M58 22V16c0-5.523-4.477-10-10-10"
-          stroke="currentColor"
-          strokeWidth="5"
-          strokeLinecap="round"
-        />
-        <path d="M28 22h20l8 10-8 10H28a4 4 0 0 1-4-4V26a4 4 0 0 1 4-4Z" fill="#06b6a4" />
-      </svg>
-      <span>SPS</span>
+      {theme === "dark" ? (
+        <Image width={120}
+          height={100} src={logoDark.src} alt="SPS logo" className="h-[90px] w-[100px]" />
+      ) : (
+        <Image width={120}
+          height={100} src={logolight.src} alt="SPS logo" className="h-[80px] w-[100px]" />
+      )}
+      
     </a>
   );
 }
