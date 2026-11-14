@@ -6,6 +6,7 @@ import { Button } from "../ui/button";
 import { CompanyCombobox, useResidentCompanies } from "../ui/company-combobox";
 import { Field, inputClass } from "../ui/field";
 import { PhoneInput } from "../ui/phone-input";
+import { Select } from "../ui/select";
 import { type VisitorForm, visitorTypes } from "./types";
 
 type Company = { id: string; name: string; floor?: string };
@@ -68,11 +69,7 @@ export function DetailsStep({ visitor, onNext, companies: given, lockPhone = fal
         </Field>
 
         <Field label="Visitor Type" htmlFor="visitorType">
-          <select id="visitorType" name="visitorType" defaultValue={visitor.visitorType} className={inputClass}>
-            {visitorTypes.map((type) => (
-              <option key={type}>{type}</option>
-            ))}
-          </select>
+          <Select id="visitorType" name="visitorType" defaultValue={visitor.visitorType} options={visitorTypes} />
         </Field>
 
         <Field label="Resident Company" htmlFor="residentCompany" required>

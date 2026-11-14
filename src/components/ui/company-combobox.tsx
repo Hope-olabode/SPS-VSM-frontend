@@ -2,7 +2,7 @@
 
 import { type KeyboardEvent, useEffect, useId, useRef, useState } from "react";
 import { api, type ApiTenant, type ApiTenantList, errorMessage } from "@/src/lib/api";
-import { ChevronDownIcon } from "../icons";
+import { CheckIcon, ChevronDownIcon } from "../icons";
 import { inputClass } from "./field";
 
 /**
@@ -139,7 +139,7 @@ export function CompanyCombobox({ id, name, value, onChange, companies, state = 
   }
 
   const disabled = state !== "ready";
-  const option = "flex w-full cursor-pointer items-center justify-between gap-3 px-3.5 py-2 text-left text-sm";
+  const option = "flex w-full cursor-pointer items-center justify-between gap-3 rounded-lg px-3.5 py-2.5 text-left text-sm";
 
   return (
     <div className="relative">
@@ -189,7 +189,7 @@ export function CompanyCombobox({ id, name, value, onChange, companies, state = 
           role="listbox"
           // mouse down on the list must not blur the input, or the click would never land
           onMouseDown={(event) => event.preventDefault()}
-          className="absolute z-30 mt-1 max-h-56 w-full overflow-auto rounded-lg border border-line-strong bg-surface py-1 [box-shadow:var(--shadow)]"
+          className="absolute z-30 mt-1.5 max-h-64 w-full overflow-auto rounded-xl border border-line bg-surface p-1.5 shadow-[0_18px_50px_rgba(0,0,0,0.15)]"
         >
           {matches.map((company, index) => (
             <li
@@ -199,10 +199,13 @@ export function CompanyCombobox({ id, name, value, onChange, companies, state = 
               aria-selected={company.name === value}
               onMouseEnter={() => setActive(index)}
               onClick={() => choose(company)}
-              className={`${option} ${index === active ? "bg-surface-soft" : ""} ${company.name === value ? "font-semibold text-brand" : "text-fg"}`}
+              className={`${option} ${company.name === value ? "bg-brand-soft font-medium text-brand" : index === active ? "bg-surface-soft text-fg" : "text-soft"}`}
             >
               <span>{company.name}</span>
-              {company.floor && <span className="text-[11px] text-muted">{company.floor}</span>}
+              <span className="flex items-center gap-2">
+                {company.floor && <span className="text-[11px] text-muted">{company.floor}</span>}
+                {company.name === value && <CheckIcon size={16} />}
+              </span>
             </li>
           ))}
           {canAdd && (
