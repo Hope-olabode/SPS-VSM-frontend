@@ -55,7 +55,7 @@ export const navGroups: NavGroup[] = [
     title: "Administration",
     access: "admin",
     items: [
-      { label: "Control Panel", href: "/dashboard/control-panel", icon: SettingsIcon },
+      { label: "Control Panel", href: "/dashboard/control-panel", icon: SettingsIcon, access: "globalAdmin" }, // PUT /api/settings and the kiosk code routes are global-admin-only
       { label: "Users", href: "/dashboard/users", icon: UserPlusIcon },
       { label: "Documents", href: "/dashboard/documents", icon: DocumentIcon },
       { label: "Locations", href: "/dashboard/locations", icon: PinIcon },
