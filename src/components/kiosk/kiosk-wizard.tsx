@@ -18,7 +18,7 @@ type WizardProps = {
   /** 1 = the details form (walk-in), 2 = straight to the photo (the pass already gave the details) */
   startStep: 1 | 2;
   /** Walk-in: looks a typed phone number up, resolving the details that visitor gave before (or null for a new number) */
-  lookupVisitor?: (number: { phoneCode: string; phone: string }) => Promise<Partial<VisitorForm> | null>;
+  lookupVisitor?: (number: { phoneCode: string; phone: string }) => Promise<Partial<Record<keyof VisitorForm, string>> | null>;
   /** A line above the steps, e.g. the welcome for a visitor with a pass */
   banner?: ReactNode;
   /** Back from the first step this wizard shows */

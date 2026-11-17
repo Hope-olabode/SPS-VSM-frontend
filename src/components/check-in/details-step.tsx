@@ -26,7 +26,7 @@ type DetailsStepProps = {
    * The kiosk passes this in: once a full phone number is typed it is looked up, and when the number has visited before the visitor
    * is offered to fill in the details they gave last time (they can still change every one of them). Resolves null for a new number.
    */
-  lookup?: (number: { phoneCode: string; phone: string }) => Promise<Partial<VisitorForm> | null>;
+  lookup?: (number: { phoneCode: string; phone: string }) => Promise<Partial<Record<keyof VisitorForm, string>> | null>;
 };
 
 export function DetailsStep({ visitor, onNext, companies: given, lockPhone = false, canAddCompany = false, onBack, lookup }: DetailsStepProps) {
@@ -40,7 +40,7 @@ export function DetailsStep({ visitor, onNext, companies: given, lockPhone = fal
   const [host, setHost] = useState(visitor.host);
 
   // a number that has visited before: what they gave last time, offered until they tap to use it
-  const [known, setKnown] = useState<Partial<VisitorForm> | null>(null);
+  const [known, setKnown] = useState<Partial<Record<keyof VisitorForm, string>> | null>(null);
   const [number, setNumber] = useState({ phoneCode: visitor.phoneCode, phone: visitor.phone });
   const lookupRef = useRef(lookup);
   useEffect(() => {
