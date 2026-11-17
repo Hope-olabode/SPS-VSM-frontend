@@ -92,7 +92,7 @@ export function ConfirmStep({ visitor, signature, signatureRequired, onSignature
         <Button variant="ghost" onClick={onBack}>
           <ArrowLeftIcon size={16} /> Back
         </Button>
-        <Button onClick={onFinish} disabled={(signatureRequired && !signature) || submitting}>
+        <Button onClick={onFinish} disabled={signatureRequired && !signature} loading={submitting}>
           <CheckIcon size={16} /> {submitting ? "Checking in…" : "Complete Check-In"}
         </Button>
       </div>

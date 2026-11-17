@@ -1,6 +1,7 @@
 "use client";
 
 import { type FormEvent, type ReactNode, useState } from "react";
+import { useLock } from "@/src/hooks/useLock";
 import { useCurrentUser } from "@/src/components/dashboard/current-user-provider";
 import { useLocations } from "@/src/components/dashboard/locations-provider";
 import { useUsers } from "@/src/components/dashboard/users-provider";
@@ -80,22 +81,28 @@ export function UsersRolesSection({ onNotice }: { onNotice: (message: string) =>
     }
   }
 
-  async function changeRole(id: string, name: string, role: UserRole) {
-    try {
-      await setRole(id, role);
-      onNotice(`${name} is now ${role}`);
-    } catch (err) {
-      onNotice(errorMessage(err));
-    }
+  const { run } = useLock();
+
+  function changeRole(id: string, name: string, role: UserRole) {
+    return run(async () => {
+      try {
+        await setRole(id, role);
+        onNotice(`${name} is now ${role}`);
+      } catch (err) {
+        onNotice(errorMessage(err));
+      }
+    });
   }
 
-  async function moveTo(id: string, name: string, branch: string) {
-    try {
-      await updateUser(id, { branch });
-      onNotice(`${name} moved to ${branch}`);
-    } catch (err) {
-      onNotice(errorMessage(err));
-    }
+  function moveTo(id: string, name: string, branch: string) {
+    return run(async () => {
+      try {
+        await updateUser(id, { branch });
+        onNotice(`${name} moved to ${branch}`);
+      } catch (err) {
+        onNotice(errorMessage(err));
+      }
+    });
   }
 
   return (
@@ -164,7 +171,7 @@ export function UsersRolesSection({ onNotice }: { onNotice: (message: string) =>
             </Field>
 
             <div className="sm:col-span-2 xl:col-span-1 xl:pt-[29px]">
-              <Button type="submit" className="w-full xl:w-auto" disabled={saving}>
+              <Button type="submit" className="w-full xl:w-auto" loading={saving}>
                 <UserPlusIcon size={15} />
                 {saving ? "Creating…" : "Create User"}
               </Button>

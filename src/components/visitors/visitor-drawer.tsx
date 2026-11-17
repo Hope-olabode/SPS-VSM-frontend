@@ -1,6 +1,7 @@
 "use client";
 
 import { type KeyboardEvent, type ReactNode, useCallback, useEffect, useId, useRef, useState } from "react";
+import { PageLoader } from "@/src/components/ui/page-loader";
 import { useVisitors } from "@/src/components/dashboard/visitors-provider";
 import { VisitorAvatar } from "@/src/components/dashboard/visitor-avatar";
 import { AlertCircleIcon, CloseIcon, LogoutIcon } from "@/src/components/icons";
@@ -240,7 +241,7 @@ export function VisitorDrawer({ visitorId, unlocked, onClose }: VisitorDrawerPro
           </div>
         )}
 
-        {!details && !error && <p className="px-6 py-8 text-center text-xs text-muted">Loading details…</p>}
+        {!details && !error && <PageLoader label="Loading details…" className="py-10" />}
 
         {details && (
           <>

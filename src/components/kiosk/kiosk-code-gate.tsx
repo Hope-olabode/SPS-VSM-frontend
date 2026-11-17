@@ -10,7 +10,7 @@ import { inputClass } from "../ui/field";
  * The first screen of every kiosk. Nothing about the location is loaded or shown until the tablet is given
  * the location's 6-digit kiosk code (an admin sees it on the Locations page and in the Control Panel).
  */
-export function KioskCodeGate({ token, message, onUnlock }: { token: string; message?: string; onUnlock: (code: string) => void }) {
+export function KioskCodeGate({ token, message, onUnlock }: { token: string; message?: string; onUnlock: () => void }) {
   const [code, setCode] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(message ?? "");
@@ -22,7 +22,8 @@ export function KioskCodeGate({ token, message, onUnlock }: { token: string; mes
     setError("");
     try {
       await api("/kiosk/unlock", { method: "POST", body: { code }, headers: { "x-kiosk-token": token }, redirectOn401: false });
-      onUnlock(code);
+      setCode("");
+      onUnlock();
     } catch (err) {
       setError(errorMessage(err, "Couldn't check the code. Please try again."));
       setCode("");
@@ -62,7 +63,7 @@ export function KioskCodeGate({ token, message, onUnlock }: { token: string; mes
         </p>
       )}
 
-      <Button type="submit" disabled={code.length !== 6 || submitting} className="mt-6 min-h-[52px] w-full text-base">
+      <Button type="submit" disabled={code.length !== 6} loading={submitting} className="mt-6 min-h-[52px] w-full text-base">
         {submitting ? "Checking…" : "Unlock kiosk"}
       </Button>
     </form>

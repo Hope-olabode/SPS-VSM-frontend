@@ -271,7 +271,7 @@ function Scanner({ onClose, onUse }: Omit<QrModalProps, "open">) {
                 spellCheck={false}
                 className={`${inputClass} font-mono uppercase`}
               />
-              <Button type="submit" disabled={looking || typed.trim() === ""} className="shrink-0">
+              <Button type="submit" disabled={typed.trim() === ""} loading={looking} className="shrink-0">
                 {looking ? "Looking…" : "Look up"}
               </Button>
             </form>

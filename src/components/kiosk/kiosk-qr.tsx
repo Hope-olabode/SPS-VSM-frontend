@@ -192,7 +192,7 @@ function ScanStep({ call, onCancel, onFound }: { call: Call; onCancel: () => voi
           spellCheck={false}
           className={`${inputClass} h-12 font-mono uppercase`}
         />
-        <Button type="submit" disabled={looking || typed.trim() === ""} className="min-h-[48px] shrink-0">
+        <Button type="submit" disabled={typed.trim() === ""} loading={looking} className="min-h-[48px] shrink-0">
           {looking ? "Checking…" : "Continue"}
         </Button>
       </form>

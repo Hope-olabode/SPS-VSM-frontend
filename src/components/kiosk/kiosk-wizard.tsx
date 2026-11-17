@@ -37,6 +37,7 @@ export function KioskWizard({ config, title, initialVisitor, startStep, banner, 
   const [error, setError] = useState("");
 
   async function finish() {
+    if (submitting) return; // already saving: ignore a second press
     setSubmitting(true);
     setError("");
     try {

@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, type ReactNode, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { PageLoader } from "@/src/components/ui/page-loader";
 import { useCurrentUser } from "@/src/components/dashboard/current-user-provider";
 import { api, type ApiLocation } from "@/src/lib/api";
 import type { Location, LocationInput } from "@/src/lib/mock-locations";
@@ -116,7 +117,7 @@ export function LocationsProvider({ children }: { children: ReactNode }) {
             </button>
           </div>
         ) : (
-          <p role="status">Loading locations…</p>
+          <PageLoader fullScreen label="Loading locations…" />
         )}
       </div>
     );

@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useLock } from "@/src/hooks/useLock";
+import { PageLoader } from "@/src/components/ui/page-loader";
 import { useCurrentUser } from "@/src/components/dashboard/current-user-provider";
 import { useUsers } from "@/src/components/dashboard/users-provider";
 import { SearchIcon, UploadIcon, UserPlusIcon } from "@/src/components/icons";
@@ -57,22 +59,28 @@ export function UsersPage() {
   }
 
   // no email is sent yet, so "reset" and "resend invite" both make a new one-time password for the admin to pass on
-  async function issuePassword(user: User) {
-    try {
-      const password = await resetPassword(user.id);
-      setCredentials({ name: user.name, email: user.email, password, kind: "reset" });
-    } catch (err) {
-      setNotice(errorMessage(err));
-    }
+  const { run } = useLock();
+
+  function issuePassword(user: User) {
+    return run(async () => {
+      try {
+        const password = await resetPassword(user.id);
+        setCredentials({ name: user.name, email: user.email, password, kind: "reset" });
+      } catch (err) {
+        setNotice(errorMessage(err));
+      }
+    });
   }
 
-  async function remove(user: User) {
-    try {
-      await removeUser(user.id);
-      setNotice(`${user.name} was removed`);
-    } catch (err) {
-      setNotice(errorMessage(err));
-    }
+  function remove(user: User) {
+    return run(async () => {
+      try {
+        await removeUser(user.id);
+        setNotice(`${user.name} was removed`);
+      } catch (err) {
+        setNotice(errorMessage(err));
+      }
+    });
   }
 
   return (
@@ -138,9 +146,7 @@ export function UsersPage() {
         )}
 
         {loading && users.length === 0 && (
-          <p role="status" className="px-5 py-12 text-center text-xs text-muted">
-            Loading users…
-          </p>
+          <PageLoader label="Loading users…" />
         )}
 
         <div className="overflow-hidden rounded-xl border border-line bg-surface [box-shadow:var(--shadow)]" hidden={loading && users.length === 0}>

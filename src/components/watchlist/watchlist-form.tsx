@@ -205,7 +205,7 @@ export function WatchlistForm({ onSave, onCancel }: WatchlistFormProps) {
           <Button variant="ghost" onClick={onCancel}>
             Cancel
           </Button>
-          <Button type="submit" disabled={submitting}>
+          <Button type="submit" loading={submitting}>
             <ShieldAlertIcon size={15} />
             {submitting ? "Adding…" : "Add to Watchlist"}
           </Button>

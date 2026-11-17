@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useLock } from "@/src/hooks/useLock";
+import { PageLoader } from "@/src/components/ui/page-loader";
 import { CloseIcon, DownloadIcon, UserPlusIcon } from "@/src/components/icons";
 import { Button } from "@/src/components/ui/button";
 import { Pagination } from "@/src/components/visitors/pagination";
@@ -95,15 +97,19 @@ export function PreRegistrationPage() {
   }
 
   /** DELETE /api/pre-registrations/:id */
-  async function deleteItem(id: string) {
-    try {
-      await api(`/pre-registrations/${encodeURIComponent(id)}`, { method: "DELETE" });
-      setItems((current) => current.filter((item) => item.id !== id));
-      setSelected((current) => current.filter((item) => item !== id));
-      setPassId((current) => (current === id ? null : current));
-    } catch (err) {
-      setNotice(errorMessage(err));
-    }
+  const { run } = useLock();
+
+  function deleteItem(id: string) {
+    return run(async () => {
+      try {
+        await api(`/pre-registrations/${encodeURIComponent(id)}`, { method: "DELETE" });
+        setItems((current) => current.filter((item) => item.id !== id));
+        setSelected((current) => current.filter((item) => item !== id));
+        setPassId((current) => (current === id ? null : current));
+      } catch (err) {
+        setNotice(errorMessage(err));
+      }
+    });
   }
 
   async function shareItem(item: PreRegistration) {
@@ -186,9 +192,7 @@ export function PreRegistrationPage() {
 
       <section className="overflow-hidden rounded-xl border border-line bg-surface [box-shadow:var(--shadow)]">
         {loading ? (
-          <p role="status" className="px-5 py-16 text-center text-xs text-muted">
-            Loading pre-registrations…
-          </p>
+          <PageLoader label="Loading pre-registrations…" />
         ) : (
           <>
             <PreRegTable

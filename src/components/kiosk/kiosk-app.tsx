@@ -1,6 +1,7 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
+import { PageLoader } from "@/src/components/ui/page-loader";
 import { type FormEvent, type ReactNode, useCallback, useEffect, useState } from "react";
 import { useTheme } from "@/src/hooks/useTheme";
 import { api, ApiError, type ApiKioskConfig, errorMessage } from "@/src/lib/api";
@@ -34,21 +35,23 @@ const MAX_APPROVAL_WAIT_MS = 5 * 60_000;
 /** Someone walked away in the middle of a form: after this long without a touch or a key, the kiosk goes back to the start screen */
 const IDLE_RESET_MS = 3 * 60_000;
 
-// The tablet remembers the code it was unlocked with, so a reload or a restart doesn't ask for it again.
-// An admin regenerating the code (or the link) locks it again: the server answers 423 and the code screen comes back.
-const codeKey = (token: string) => `kiosk-code:${token.slice(-12)}`;
-const readCode = (token: string) => {
+// The 6-digit code is typed once and sent once, to /kiosk/unlock. The server then gives this tablet an httpOnly cookie as proof,
+// which page code can't read, so a reload or a restart doesn't ask again and the code itself is never kept on the tablet.
+// An admin regenerating the code (or the link) ends the proof: the server answers 423 and the code screen comes back.
+
+// Older versions kept the code itself in this browser's storage. Remove any that is still there.
+function forgetOldStoredCodes() {
   try {
-    return localStorage.getItem(codeKey(token)) ?? "";
+    for (const key of Object.keys(localStorage)) if (key.startsWith("kiosk-code:")) localStorage.removeItem(key);
   } catch {
-    return "";
+    // storage can be blocked; then there is nothing stored to remove
   }
-};
+}
 
 export function KioskApp() {
   const token = useSearchParams().get("token") ?? "";
-  /** null until the tablet has looked for a remembered code; "" = locked */
-  const [code, setCode] = useState<string | null>(null);
+  /** null until the server has been asked; false = show the code screen */
+  const [unlocked, setUnlocked] = useState<boolean | null>(null);
   const [lockedMessage, setLockedMessage] = useState("");
   const [config, setConfig] = useState<ApiKioskConfig | null>(null);
   const [problem, setProblem] = useState("");
@@ -57,60 +60,48 @@ export function KioskApp() {
   /** the visit waiting for approval, so the kiosk can ask what staff decided */
   const [waitingVisitId, setWaitingVisitId] = useState("");
 
-  useEffect(() => {
-    setCode(readCode(token));
-  }, [token]);
+  /** Back to the code screen */
+  const lock = useCallback((message = "") => {
+    setConfig(null);
+    setScreen("home");
+    setLockedMessage(message);
+    setUnlocked(false);
+  }, []);
 
-  /** Back to the code screen, and forget the code this tablet remembered */
-  const lock = useCallback(
-    (message = "") => {
-      try {
-        localStorage.removeItem(codeKey(token));
-      } catch {
-        // storage can be blocked; the code screen still shows
-      }
-      setConfig(null);
-      setScreen("home");
-      setLockedMessage(message);
-      setCode("");
-    },
-    [token],
-  );
-
-  const unlock = (entered: string) => {
-    try {
-      localStorage.setItem(codeKey(token), entered);
-    } catch {
-      // the kiosk works without it, it just asks again after a reload
-    }
-    setLockedMessage("");
-    setCode(entered);
-  };
-
-  // every kiosk call carries the link's token and the code in headers; a 401 is a bad or switched-off link, a 423 is a missing or changed code
+  // every kiosk call carries the link's token (the unlock cookie goes along by itself); a 401 is a bad or switched-off link, a 423 is a locked kiosk
   const call = useCallback(
     <T,>(path: string, init: { method?: string; body?: unknown } = {}): Promise<T> =>
-      api<T>(`/kiosk${path}`, { ...init, headers: { "x-kiosk-token": token, "x-kiosk-code": code ?? "" }, redirectOn401: false }).catch((err) => {
+      api<T>(`/kiosk${path}`, { ...init, headers: { "x-kiosk-token": token }, redirectOn401: false }).catch((err) => {
         if (err instanceof ApiError && err.status === 423) lock(err.message);
         throw err;
       }),
-    [token, code, lock],
+    [token, lock],
   );
 
-  // nothing is asked of the server about the location until the code has been accepted
-  useEffect(() => {
-    if (!token || !code) return;
-    let cancelled = false;
-    call<ApiKioskConfig>("/config")
-      .then((data) => !cancelled && setConfig(data))
+  // Ask for the kiosk's settings. If this tablet was unlocked before, the server accepts it; otherwise it says 423 and the code screen shows.
+  const start = useCallback(() => {
+    api<ApiKioskConfig>("/kiosk/config", { headers: { "x-kiosk-token": token }, redirectOn401: false })
+      .then((data) => {
+        setConfig(data);
+        setUnlocked(true);
+      })
       .catch((err) => {
-        if (cancelled || (err instanceof ApiError && err.status === 423)) return;
+        if (err instanceof ApiError && err.status === 423) return setUnlocked(false);
         setProblem(errorMessage(err, "The kiosk can't reach the server. Please ask staff for help."));
       });
-    return () => {
-      cancelled = true;
-    };
-  }, [call, token, code]);
+  }, [token]);
+
+  useEffect(() => {
+    forgetOldStoredCodes();
+    if (token) start();
+  }, [token, start]);
+
+  /** The code was accepted: the server has given this tablet its proof, so load the kiosk */
+  const unlock = () => {
+    setLockedMessage("");
+    setUnlocked(null);
+    start();
+  };
 
   const finish = (result: Outcome) => {
     setOutcome(result);
@@ -168,9 +159,9 @@ export function KioskApp() {
 
   if (!token) return <Frame><Notice title="No kiosk link">This page needs the kiosk link. Ask a staff member for the kiosk URL.</Notice></Frame>;
   if (problem) return <Frame><Notice title="The kiosk isn't available" error>{problem}</Notice></Frame>;
-  if (code === null) return <Frame />;
-  if (!code) return <Frame><KioskCodeGate token={token} message={lockedMessage} onUnlock={unlock} /></Frame>;
-  if (!config) return <Frame><p className="py-20 text-center text-sm text-soft">Loading…</p></Frame>;
+  if (unlocked === null) return <Frame><PageLoader label="Getting the kiosk ready…" /></Frame>;
+  if (!unlocked) return <Frame><KioskCodeGate token={token} message={lockedMessage} onUnlock={unlock} /></Frame>;
+  if (!config) return <Frame><PageLoader label="Getting the kiosk ready…" /></Frame>;
 
   const walkIn = (visitor: VisitorForm, photo: string | null, signature: string | null) =>
     call<CheckInResult>("/check-in", {
@@ -381,6 +372,7 @@ function KioskCheckOut({ call, onCancel, onDone }: { call: Call; onCancel: () =>
 
   async function submit(event: FormEvent) {
     event.preventDefault();
+    if (submitting) return;
     setSubmitting(true);
     setError("");
     try {
@@ -413,7 +405,7 @@ function KioskCheckOut({ call, onCancel, onDone }: { call: Call; onCancel: () =>
           </p>
         )}
         <div className="mt-6 flex justify-end">
-          <Button type="submit" disabled={phoneDigits.length < minPhoneDigits(number.phoneCode) || submitting} className="min-h-[48px]">
+          <Button type="submit" disabled={phoneDigits.length < minPhoneDigits(number.phoneCode)} loading={submitting} className="min-h-[48px]">
             {submitting ? "Checking out…" : "Check Out"}
           </Button>
         </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { PageLoader } from "@/src/components/ui/page-loader";
 import { useParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ArrowLeftIcon, CalendarIcon, PencilIcon, PinIcon, UserPlusIcon } from "@/src/components/icons";
@@ -142,9 +143,7 @@ export function EventDetailsPage() {
 
   if (loading) {
     return (
-      <p role="status" className="px-5 py-16 text-center text-xs text-muted">
-        Loading event…
-      </p>
+      <PageLoader label="Loading event…" />
     );
   }
 

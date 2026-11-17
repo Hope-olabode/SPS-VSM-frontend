@@ -1,6 +1,7 @@
 "use client";
 
 import { useParams } from "next/navigation";
+import { PageLoader } from "@/src/components/ui/page-loader";
 import { type ReactNode, useEffect, useState } from "react";
 import { CalendarIcon, CheckIcon, MoonIcon, PinIcon, ShieldCheckIcon, SunIcon } from "@/src/components/icons";
 import { useTheme } from "@/src/hooks/useTheme";
@@ -93,10 +94,7 @@ export function PublicRegistration() {
     );
   } else if (!event) {
     body = (
-      <div role="status" className="flex items-center justify-center gap-3 py-24 text-sm text-muted">
-        <span aria-hidden="true" className="h-5 w-5 animate-spin rounded-full border-2 border-brand border-t-transparent" />
-        Loading event…
-      </div>
+      <PageLoader label="Loading event…" className="py-24" />
     );
   } else if (done) {
     body = (

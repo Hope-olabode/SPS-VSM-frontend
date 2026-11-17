@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, type ReactNode, useCallback, useContext, useEffect, useState } from "react";
+import { PageLoader } from "@/src/components/ui/page-loader";
 import { api, ApiError, type ApiUser, LOGIN_PATH, toUiRole } from "@/src/lib/api";
 
 export type SessionUser = {
@@ -84,7 +85,7 @@ export function CurrentUserProvider({ children }: { children: ReactNode }) {
             </button>
           </div>
         ) : (
-          <p role="status">Loading your dashboard…</p>
+          <PageLoader fullScreen label="Loading your dashboard…" />
         )}
       </div>
     );

@@ -227,7 +227,7 @@ function ProfileForm({ onClose, onNotice }: Pick<ModalProps, "onClose" | "onNoti
         <Button variant="ghost" onClick={onClose}>
           Cancel
         </Button>
-        <Button type="submit" disabled={submitting}>
+        <Button type="submit" loading={submitting}>
           <CheckIcon size={15} />
           {submitting ? "Saving…" : "Save Changes"}
         </Button>
@@ -365,7 +365,7 @@ function PasswordForm({ onClose, onNotice }: Pick<ModalProps, "onClose" | "onNot
         <Button variant="ghost" onClick={onClose}>
           Cancel
         </Button>
-        <Button type="submit" disabled={submitting}>
+        <Button type="submit" loading={submitting}>
           <LockIcon size={15} />
           {submitting ? "Updating…" : "Update Password"}
         </Button>

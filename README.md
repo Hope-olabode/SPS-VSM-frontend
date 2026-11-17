@@ -70,7 +70,8 @@ The browser never calls the API directly. It calls `/backend/...` on this site, 
 | `/dashboard/watchlist`, `/dashboard/emergency` | Watchlist and evacuation roster | Signed in |
 | `/dashboard/marketing` | SMS campaigns | Marketing access |
 | `/dashboard/audit-trail` | Audit trail | Admin |
-| `/dashboard/control-panel`, `/users`, `/locations`, `/documents`, `/old-records` | Administration | Admin (old records: global admin) |
+| `/dashboard/users`, `/locations`, `/documents` | Administration | Admin |
+| `/dashboard/control-panel`, `/old-records` | Settings, kiosk code, archive | Global admin only |
 | `/kiosk?token=...` | Front-desk tablet, no login | Kiosk link + 6-digit code |
 | `/register/[token]` | Public event sign-up, no login | Secret link |
 
@@ -78,11 +79,11 @@ Staff sign-in is guarded in two layers: `src/proxy.ts` redirects signed-out visi
 
 ## Kiosk setup
 
-1. An admin opens the Overview or Control Panel and copies the kiosk link for the location.
-2. Open that link on the tablet (`/kiosk?token=...`).
-3. Enter the location's 6-digit access code shown beside the link to unlock it.
+1. An admin opens the Overview (or, for global admins, the Control Panel). The kiosk card shows the link and a **QR code**.
+2. On the tablet, scan the QR code with the camera (or open the link, `/kiosk?token=...`).
+3. Enter the location's 6-digit access code to unlock the kiosk. Only global admins can see this code, so a location admin needs a global admin to give it to them. The tablet doesn't keep the code: after it is accepted the server gives the tablet a cookie that page code can't read, so a reload or restart doesn't ask again. Regenerating the code or the link locks the tablet again.
 
-Treat the link like a password. If it leaks, regenerate it from the same screen.
+Treat the link and QR code like a password. If they leak, a global admin can regenerate them in the Control Panel.
 
 ## Project structure
 
@@ -93,7 +94,7 @@ frontend/
     ├── proxy.ts       sends signed-out users to the login page
     ├── app/           routes: auth/, dashboard/, kiosk/, register/
     ├── components/    UI grouped by feature (check-in, visitors, events, analytics, ...)
-    ├── hooks/         shared hooks (e.g. useTheme)
+    ├── hooks/         shared hooks (useTheme, useLock)
     └── lib/           api.ts, nav.ts, qr.ts, CSV download, filters, shared types and helpers
 ```
 
@@ -101,6 +102,12 @@ Notes:
 - `lib/api.ts` is the only place that knows how to reach the backend.
 - `lib/nav.ts` defines the sidebar and which role sees each item.
 - Several `lib/mock-*.ts` files still hold shared types and helpers (for example `Visitor`, `maskPhone`, `hasAccess`). The name is historical; check a file before assuming it only contains sample data.
+
+## Loading and busy buttons
+
+- **Page loading:** use `<PageLoader label="Loading visitors…" />` (`components/ui/page-loader.tsx`). Add `fullScreen` for a first load. `app/dashboard/loading.tsx` and `app/kiosk/loading.tsx` show it while a route loads.
+- **Submit buttons:** give the shared `Button` a `loading` prop (`<Button type="submit" loading={submitting}>`). It shows a spinner and disables the button, so it can't be pressed twice.
+- **Actions without a form** (delete, reset password, change role): wrap the work in `run()` from `useLock()` (`src/hooks/useLock.ts`). While one run is in progress, further calls are ignored.
 
 ## Camera and notifications
 

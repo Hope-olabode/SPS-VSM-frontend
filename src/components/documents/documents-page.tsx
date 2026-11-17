@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useLock } from "@/src/hooks/useLock";
 import { DocumentIcon } from "@/src/components/icons";
 import { Button } from "@/src/components/ui/button";
 import { api, type ApiDocument, type ApiDocumentList, errorMessage } from "@/src/lib/api";
@@ -59,28 +60,34 @@ export function DocumentsPage() {
   }
 
   /** PATCH /api/documents/:id */
-  async function toggleActive(id: string) {
+  const { run } = useLock();
+
+  function toggleActive(id: string) {
     const target = documents.find((item) => item.id === id);
-    if (!target) return;
-    try {
-      const { item } = await api<{ item: ApiDocument }>(`/documents/${encodeURIComponent(id)}`, { method: "PATCH", body: { active: !target.active } });
-      setDocuments((current) => current.map((doc) => (doc.id === id ? toDocument(item) : doc)));
-    } catch (err) {
-      setNotice(errorMessage(err));
-    }
+    if (!target) return Promise.resolve();
+    return run(async () => {
+      try {
+        const { item } = await api<{ item: ApiDocument }>(`/documents/${encodeURIComponent(id)}`, { method: "PATCH", body: { active: !target.active } });
+        setDocuments((current) => current.map((doc) => (doc.id === id ? toDocument(item) : doc)));
+      } catch (err) {
+        setNotice(errorMessage(err));
+      }
+    });
   }
 
   /** DELETE /api/documents/:id */
-  async function remove(id: string) {
+  function remove(id: string) {
     const target = documents.find((item) => item.id === id);
-    if (!target) return;
-    try {
-      await api(`/documents/${encodeURIComponent(id)}`, { method: "DELETE" });
-      setDocuments((current) => current.filter((item) => item.id !== id));
-      setNotice(`"${target.title}" was removed`);
-    } catch (err) {
-      setNotice(errorMessage(err));
-    }
+    if (!target) return Promise.resolve();
+    return run(async () => {
+      try {
+        await api(`/documents/${encodeURIComponent(id)}`, { method: "DELETE" });
+        setDocuments((current) => current.filter((item) => item.id !== id));
+        setNotice(`"${target.title}" was removed`);
+      } catch (err) {
+        setNotice(errorMessage(err));
+      }
+    });
   }
 
   return (

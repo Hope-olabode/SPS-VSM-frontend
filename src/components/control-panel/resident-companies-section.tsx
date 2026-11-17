@@ -1,6 +1,7 @@
 "use client";
 
 import { type FormEvent, useCallback, useEffect, useState } from "react";
+import { useLock } from "@/src/hooks/useLock";
 import { BuildingIcon, PencilIcon, TrashIcon } from "@/src/components/icons";
 import { Button } from "@/src/components/ui/button";
 import { Field, inputClass } from "@/src/components/ui/field";
@@ -67,16 +68,20 @@ export function ResidentCompaniesSection({ onNotice }: { onNotice: (message: str
     }
   }
 
-  async function remove(company: ApiTenant) {
-    if (!window.confirm(`Remove ${company.name} from the resident companies?`)) return;
-    try {
-      await api(`/tenants/${encodeURIComponent(company.id)}`, { method: "DELETE" });
-      onNotice("Company removed");
-      if (editingId === company.id) reset();
-      await load();
-    } catch (err) {
-      onNotice(errorMessage(err, "Couldn't remove the company."));
-    }
+  const { run } = useLock();
+
+  function remove(company: ApiTenant) {
+    if (!window.confirm(`Remove ${company.name} from the resident companies?`)) return Promise.resolve();
+    return run(async () => {
+      try {
+        await api(`/tenants/${encodeURIComponent(company.id)}`, { method: "DELETE" });
+        onNotice("Company removed");
+        if (editingId === company.id) reset();
+        await load();
+      } catch (err) {
+        onNotice(errorMessage(err, "Couldn't remove the company."));
+      }
+    });
   }
 
   return (
@@ -99,7 +104,7 @@ export function ResidentCompaniesSection({ onNotice }: { onNotice: (message: str
           <input id="rc-floor" value={floor} onChange={(event) => setFloor(event.target.value)} maxLength={60} placeholder="e.g. 3rd Floor" className={inputClass} />
         </Field>
         <div className="flex gap-2">
-          <Button type="submit" disabled={saving}>
+          <Button type="submit" loading={saving}>
             {saving ? "Saving…" : editingId ? "Save" : "Add company"}
           </Button>
           {editingId && (

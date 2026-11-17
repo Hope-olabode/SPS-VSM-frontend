@@ -124,7 +124,7 @@ export function DocumentForm({ onSave, onCancel }: DocumentFormProps) {
           <Button variant="ghost" onClick={onCancel}>
             Cancel
           </Button>
-          <Button type="submit" disabled={submitting}>
+          <Button type="submit" loading={submitting}>
             {submitting ? "Saving…" : "Save Document"}
           </Button>
         </div>

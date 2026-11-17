@@ -69,6 +69,7 @@ export function CheckInFlow() {
   }
 
   async function finish() {
+    if (submitting) return; // already saving: ignore a second press
     setSubmitting(true);
     setError("");
     try {

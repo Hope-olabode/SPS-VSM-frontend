@@ -1,6 +1,7 @@
 "use client";
 
 import { type ComponentType, useEffect, useMemo, useRef, useState } from "react";
+import { PageLoader } from "@/src/components/ui/page-loader";
 import {
   BuildingIcon,
   CalendarIcon,
@@ -442,7 +443,7 @@ export function ReportsPage() {
           </div>
         )}
 
-        {!view && !error && <p className="px-5 py-14 text-center text-xs text-muted">Loading report...</p>}
+        {!view && !error && <PageLoader label="Loading report…" />}
 
         {view && (
           <div aria-busy={loading} className={loading ? "opacity-60 transition-opacity" : "transition-opacity"}>

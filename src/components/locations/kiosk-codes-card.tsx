@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { PageLoader } from "@/src/components/ui/page-loader";
 import { KeyIcon, RotateCcwIcon } from "@/src/components/icons";
 import { Button } from "@/src/components/ui/button";
 import { api, type ApiKioskCode, errorMessage } from "@/src/lib/api";
@@ -71,7 +72,7 @@ export function KioskCodesCard() {
       )}
 
       {!items ? (
-        !error && <p className="px-5 py-6 text-xs text-soft">Loading the kiosk codes…</p>
+        !error && <PageLoader label="Loading the kiosk codes…" className="py-8" />
       ) : (
         <ul className="divide-y divide-line">
           {items.map((item) => (

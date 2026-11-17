@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useLock } from "@/src/hooks/useLock";
+import { PageLoader } from "@/src/components/ui/page-loader";
 import { SearchIcon, ShieldAlertIcon } from "@/src/components/icons";
 import { Button } from "@/src/components/ui/button";
 import { api, ApiError, type ApiWatchlistEntry, type ApiWatchlistList } from "@/src/lib/api";
@@ -71,14 +73,18 @@ export function WatchlistPage() {
   }
 
   /** DELETE /api/watchlist/:id */
-  async function removeEntry(id: string) {
-    try {
-      await api(`/watchlist/${encodeURIComponent(id)}`, { method: "DELETE" });
-      setEntries((current) => current.filter((item) => item.id !== id));
-      setNotice("Entry removed from the watchlist");
-    } catch (err) {
-      setNotice(messageOf(err, "Couldn't remove the entry."));
-    }
+  const { run } = useLock();
+
+  function removeEntry(id: string) {
+    return run(async () => {
+      try {
+        await api(`/watchlist/${encodeURIComponent(id)}`, { method: "DELETE" });
+        setEntries((current) => current.filter((item) => item.id !== id));
+        setNotice("Entry removed from the watchlist");
+      } catch (err) {
+        setNotice(messageOf(err, "Couldn't remove the entry."));
+      }
+    });
   }
 
   return (
@@ -123,9 +129,7 @@ export function WatchlistPage() {
         </div>
 
         {loading && (
-          <p role="status" className="px-5 py-16 text-center text-xs text-muted">
-            Loading watchlist…
-          </p>
+          <PageLoader label="Loading watchlist…" />
         )}
 
         {loadError && (

@@ -1,6 +1,7 @@
 "use client";
 
 import { Fragment, useCallback, useEffect, useState } from "react";
+import { PageLoader } from "@/src/components/ui/page-loader";
 import { SearchIcon } from "@/src/components/icons";
 import { Pagination } from "@/src/components/visitors/pagination";
 import { api, type ApiOldRecord, type ApiOldRecordList, errorMessage } from "@/src/lib/api";
@@ -129,7 +130,7 @@ export function OldRecordsPage() {
               <tbody>
                 {loading && !data && (
                   <tr>
-                    <td colSpan={6} className="px-5 py-16 text-center text-muted" role="status">Loading…</td>
+                    <td colSpan={6}><PageLoader label="Loading old records…" /></td>
                   </tr>
                 )}
                 {data && data.items.length === 0 && (

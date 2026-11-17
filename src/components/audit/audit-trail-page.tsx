@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { PageLoader } from "@/src/components/ui/page-loader";
 import { useAudit } from "@/src/components/dashboard/audit-provider";
 import { CalendarIcon, ChevronDownIcon, DownloadIcon, SearchIcon, ZapIcon } from "@/src/components/icons";
 import { Pagination } from "@/src/components/visitors/pagination";
@@ -163,9 +164,7 @@ export function AuditTrailPage() {
         ))}
 
         {loading && events.length === 0 && (
-          <li role="status" className="px-5 py-12 text-center text-xs text-muted">
-            Loading audit trail…
-          </li>
+          <li><PageLoader label="Loading audit trail…" /></li>
         )}
 
         {error && (

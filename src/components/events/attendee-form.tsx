@@ -49,10 +49,6 @@ function WithIcon({ icon, children }: { icon: ReactNode; children: ReactNode }) 
   );
 }
 
-function Spinner() {
-  return <span aria-hidden="true" className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />;
-}
-
 type AttendeeFormProps = {
   /** Resolves to an error message to show in the form, or null when the person was registered */
   onSubmit: (values: AttendeeValues) => Promise<string | null>;
@@ -206,14 +202,8 @@ export function AttendeeForm({ onSubmit, submitLabel, idPrefix, onCancel }: Atte
             Cancel
           </Button>
         )}
-        <Button type="submit" disabled={submitting} className={onCancel ? "" : "h-12 w-full text-sm"}>
-          {submitting ? (
-            <>
-              <Spinner /> Saving…
-            </>
-          ) : (
-            submitLabel
-          )}
+        <Button type="submit" loading={submitting} className={onCancel ? "" : "h-12 w-full text-sm"}>
+          {submitting ? "Saving…" : submitLabel}
         </Button>
       </div>
     </form>

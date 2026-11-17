@@ -347,7 +347,7 @@ export function PreRegForm({ onSave, onCancel }: PreRegFormProps) {
           <Button variant="ghost" onClick={onCancel}>
             Cancel
           </Button>
-          <Button type="submit" disabled={submitting}>
+          <Button type="submit" loading={submitting}>
             <UserPlusIcon size={15} />
             {submitting ? "Registering…" : "Register"}
           </Button>

@@ -127,7 +127,7 @@ export function LocationForm({ initial, takenNames, lockStatus = false, onSave, 
           <Button variant="ghost" onClick={onCancel}>
             Cancel
           </Button>
-          <Button type="submit" disabled={submitting}>
+          <Button type="submit" loading={submitting}>
             {submitting ? "Saving…" : editing ? "Save Changes" : "Add Location"}
           </Button>
         </div>

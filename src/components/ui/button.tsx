@@ -1,4 +1,5 @@
 import type { ButtonHTMLAttributes } from "react";
+import { Spinner } from "./spinner";
 
 type Variant = "primary" | "secondary" | "ghost" | "danger";
 
@@ -14,8 +15,17 @@ const variants: Record<Variant, string> = {
   danger: "bg-red-600 text-white shadow-[0_3px_8px_rgba(220,38,38,0.22)] hover:-translate-y-px hover:bg-red-700 disabled:hover:translate-y-0 disabled:hover:bg-red-600",
 };
 
-type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & { variant?: Variant };
+type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
+  variant?: Variant;
+  /** True while the action is running: shows a spinner and disables the button so it can't be pressed twice */
+  loading?: boolean;
+};
 
-export function Button({ variant = "primary", type = "button", className = "", ...props }: ButtonProps) {
-  return <button type={type} className={`${base} ${variants[variant]} ${className}`} {...props} />;
+export function Button({ variant = "primary", type = "button", className = "", loading = false, disabled, children, ...props }: ButtonProps) {
+  return (
+    <button type={type} className={`${base} ${variants[variant]} ${className}`} disabled={disabled || loading} aria-busy={loading || undefined} {...props}>
+      {loading && <Spinner size={14} />}
+      {children}
+    </button>
+  );
 }

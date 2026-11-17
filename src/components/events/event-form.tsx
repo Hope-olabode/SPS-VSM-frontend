@@ -255,7 +255,7 @@ export function EventForm({ onSave, onCancel, initial }: EventFormProps) {
           <Button variant="ghost" onClick={onCancel}>
             Cancel
           </Button>
-          <Button type="submit" disabled={submitting}>
+          <Button type="submit" loading={submitting}>
             {submitting ? "Saving…" : editing ? "Save Changes" : "Save Event"}
           </Button>
         </div>

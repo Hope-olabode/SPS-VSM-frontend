@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useLock } from "@/src/hooks/useLock";
+import { PageLoader } from "@/src/components/ui/page-loader";
 import { CalendarIcon, SearchIcon } from "@/src/components/icons";
 import { Button } from "@/src/components/ui/button";
 import { api, type ApiEvent, type ApiEventList, errorMessage } from "@/src/lib/api";
@@ -61,13 +63,17 @@ export function EventsPage() {
   }
 
   /** DELETE /api/events/:id */
-  async function deleteEvent(id: string) {
-    try {
-      await api(`/events/${encodeURIComponent(id)}`, { method: "DELETE" });
-      setEvents((current) => current.filter((item) => item.id !== id));
-    } catch (err) {
-      setNotice(errorMessage(err));
-    }
+  const { run } = useLock();
+
+  function deleteEvent(id: string) {
+    return run(async () => {
+      try {
+        await api(`/events/${encodeURIComponent(id)}`, { method: "DELETE" });
+        setEvents((current) => current.filter((item) => item.id !== id));
+      } catch (err) {
+        setNotice(errorMessage(err));
+      }
+    });
   }
 
   return (
@@ -110,9 +116,7 @@ export function EventsPage() {
 
         <div className="space-y-2.5">
           {loading && (
-            <p role="status" className="px-5 py-12 text-center text-xs text-muted">
-              Loading events…
-            </p>
+            <PageLoader label="Loading events…" />
           )}
 
           {visible.map((event) => (

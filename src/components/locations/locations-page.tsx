@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useLock } from "@/src/hooks/useLock";
 import { useCurrentUser } from "@/src/components/dashboard/current-user-provider";
 import { useLocations } from "@/src/components/dashboard/locations-provider";
 import { useUsers } from "@/src/components/dashboard/users-provider";
@@ -96,16 +97,20 @@ export function LocationsPage() {
     }
   }
 
-  async function remove(location: Location) {
-    try {
-      await removeLocation(location.id);
-      setSelectedId(locations.find((item) => item.primary)?.id ?? locations[0].id);
-      setNotice(`${location.name} was removed`);
-    } catch (err) {
-      setNotice(errorMessage(err));
-    } finally {
-      setConfirmingRemove(false);
-    }
+  const { run } = useLock();
+
+  function remove(location: Location) {
+    return run(async () => {
+      try {
+        await removeLocation(location.id);
+        setSelectedId(locations.find((item) => item.primary)?.id ?? locations[0].id);
+        setNotice(`${location.name} was removed`);
+      } catch (err) {
+        setNotice(errorMessage(err));
+      } finally {
+        setConfirmingRemove(false);
+      }
+    });
   }
 
   const { location } = selected;

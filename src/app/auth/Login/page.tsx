@@ -7,6 +7,7 @@ import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTheme } from "../../../hooks/useTheme";
 import { api, ApiError } from "../../../lib/api";
+import { Spinner } from "../../../components/ui/spinner";
 import Image from "next/image";
 import logoDark from "../../../../public/Logo dark.png";
 import logolight from "../../../../public/Logo light.png";
@@ -84,6 +85,7 @@ export default function Login() {
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (submitting) return; // a second press while signing in does nothing
     const data = new FormData(event.currentTarget);
     setError("");
     setMessage("");
@@ -206,9 +208,10 @@ export default function Login() {
           <button
             type="submit"
             disabled={submitting}
+            aria-busy={submitting}
             className="mt-[30px] flex h-[50px] w-full cursor-pointer items-center justify-center gap-[9px] rounded-[10px] border border-green-600 bg-green-600 text-sm font-semibold text-white shadow-[0_3px_8px_rgba(22,163,74,0.2),inset_0_1px_rgba(255,255,255,0.18)] transition duration-150 hover:-translate-y-px hover:bg-green-700 hover:shadow-[0_6px_14px_rgba(22,163,74,0.25)] active:translate-y-0 focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-green-600/25 dark:border-green-500 dark:bg-green-500 dark:text-[#04130a] dark:hover:bg-green-400"
           >
-            <LoginIcon />
+            {submitting ? <Spinner size={18} /> : <LoginIcon />}
             {submitting ? "Signing in…" : "Sign In"}
           </button>
 
