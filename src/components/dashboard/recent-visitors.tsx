@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { ArrowRightIcon, SearchIcon } from "../icons";
 import type { Visitor, VisitorStatus } from "../../lib/mock-visitors";
+import { VisitorDetailsModal } from "@/src/components/visitors/visitor-details-modal";
 import { VisitorAvatar } from "./visitor-avatar";
 import { useVisitors } from "./visitors-provider";
 
@@ -69,6 +70,7 @@ export function RecentVisitors() {
   const { visitors } = useVisitors();
   const [filter, setFilter] = useState<Filter>("all");
   const [query, setQuery] = useState("");
+  const [viewingId, setViewingId] = useState<string | null>(null);
 
   const count = (status: VisitorStatus) => visitors.filter((visitor) => visitor.status === status).length;
 
@@ -144,13 +146,25 @@ export function RecentVisitors() {
               return (
                 <tr
                   key={visitor.id}
-                  className={`transition-colors hover:bg-surface-soft ${visitor.status === "pending_clearance" ? "bg-amber-500/[0.06]" : ""}`}
+                  onClick={() => setViewingId(visitor.id)}
+                  className={`cursor-pointer transition-colors hover:bg-surface-soft ${visitor.status === "pending_clearance" ? "bg-amber-500/[0.06]" : ""}`}
                 >
                   <td className="py-3 pl-5 pr-4">
                     <div className="flex items-center gap-3">
                       <VisitorAvatar name={visitor.name} />
                       <div>
-                        <div className="whitespace-nowrap font-bold leading-none">{visitor.name}</div>
+                        {/* a real button so the keyboard can open the details too (the whole row also opens them on click) */}
+                        <button
+                          type="button"
+                          aria-label={`View details for ${visitor.name}`}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            setViewingId(visitor.id);
+                          }}
+                          className="whitespace-nowrap text-left font-bold leading-none hover:text-brand focus-visible:text-brand"
+                        >
+                          {visitor.name}
+                        </button>
                         <div className="mt-1 text-[11px] text-muted">{visitor.type}</div>
                       </div>
                     </div>
@@ -187,6 +201,9 @@ export function RecentVisitors() {
           </tbody>
         </table>
       </div>
+
+      {/* from the Overview there is no Add to Watchlist (that is in the Visitor Log) */}
+      {viewingId && <VisitorDetailsModal visitorId={viewingId} onClose={() => setViewingId(null)} />}
     </section>
   );
 }

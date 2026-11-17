@@ -12,7 +12,7 @@ import { isAdminRole } from "@/src/lib/mock-users";
 import { formatPhone, maskPhone } from "@/src/lib/mock-visitors";
 import { emptyFilters, type Filters, matchesFilters } from "@/src/lib/visitor-filters";
 import { Pagination } from "./pagination";
-import { VisitorDrawer } from "./visitor-drawer";
+import { VisitorDetailsModal } from "./visitor-details-modal";
 import { VisitorFilters } from "./visitor-filters";
 import { VisitorTable } from "./visitor-table";
 
@@ -135,7 +135,7 @@ export function VisitorLog() {
         <Pagination page={currentPage} pageCount={pageCount} pageSize={PAGE_SIZE} total={filtered.length} onPage={setPage} />
       </section>
 
-      {viewingId && <VisitorDrawer visitorId={viewingId} unlocked={unlocked} onClose={() => setViewingId(null)} />}
+      {viewingId && <VisitorDetailsModal visitorId={viewingId} unlocked={unlocked} showWatchlist onClose={() => setViewingId(null)} />}
     </div>
   );
 }
