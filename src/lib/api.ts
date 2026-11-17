@@ -116,6 +116,8 @@ export type ApiVisitDetails = {
   decidedAt: string | null;
   hasPhoto: boolean;
   hasSignature: boolean;
+  /** The signature the visitor gave when leaving (opened from /visitors/:id/checkout-signature) */
+  hasCheckoutSignature: boolean;
   documentsSigned: { title: string; signedAt: string }[];
   /** How many earlier visits this person made to this location */
   earlierVisits: number;

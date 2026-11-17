@@ -79,6 +79,7 @@ export function VisitorDrawer({ visitorId, unlocked, onClose }: VisitorDrawerPro
   const [error, setError] = useState("");
   const [photoFailed, setPhotoFailed] = useState(false);
   const [signatureFailed, setSignatureFailed] = useState(false);
+  const [checkoutSignatureFailed, setCheckoutSignatureFailed] = useState(false);
 
   // lock page scroll while open, move focus in, and hand it back on close
   useEffect(() => {
@@ -103,6 +104,7 @@ export function VisitorDrawer({ visitorId, unlocked, onClose }: VisitorDrawerPro
         setDetails(data.visit);
         setPhotoFailed(false);
         setSignatureFailed(false);
+        setCheckoutSignatureFailed(false);
       })
       .catch((err) => {
         if (!cancelled) setError(errorMessage(err, "Couldn't load this visitor's details."));
@@ -308,6 +310,18 @@ export function VisitorDrawer({ visitorId, unlocked, onClose }: VisitorDrawerPro
                     src={`${base}/signature`}
                     alt={`Signature of ${name}`}
                     onError={() => setSignatureFailed(true)}
+                    className="h-24 w-full rounded-lg border border-line bg-white object-contain"
+                  />
+                </div>
+              )}
+              {details.hasCheckoutSignature && !checkoutSignatureFailed && (
+                <div className="mt-3">
+                  <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted">Check-out signature</p>
+                  {/* eslint-disable-next-line @next/next/no-img-element -- a private, login-protected image: next/image can't fetch it */}
+                  <img
+                    src={`${base}/checkout-signature`}
+                    alt={`Check-out signature of ${name}`}
+                    onError={() => setCheckoutSignatureFailed(true)}
                     className="h-24 w-full rounded-lg border border-line bg-white object-contain"
                   />
                 </div>

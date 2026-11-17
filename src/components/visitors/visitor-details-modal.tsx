@@ -102,6 +102,7 @@ export function VisitorDetailsModal({ visitorId, showWatchlist = false, unlocked
   const [error, setError] = useState("");
   const [photoFailed, setPhotoFailed] = useState(false);
   const [signatureFailed, setSignatureFailed] = useState(false);
+  const [checkoutSignatureFailed, setCheckoutSignatureFailed] = useState(false);
   const [unlockRequested, setUnlockRequested] = useState(false);
 
   // watchlist
@@ -139,6 +140,7 @@ export function VisitorDetailsModal({ visitorId, showWatchlist = false, unlocked
         setError("");
         setPhotoFailed(false);
         setSignatureFailed(false);
+        setCheckoutSignatureFailed(false);
       })
       .catch((err) => {
         if (!cancelled) setError(errorMessage(err, "Couldn't load this visitor's details."));
@@ -414,6 +416,25 @@ export function VisitorDetailsModal({ visitorId, showWatchlist = false, unlocked
                         </div>
                       </div>
                     </>
+                  )}
+
+                  {details.hasCheckoutSignature && !checkoutSignatureFailed && (
+                    <div className="space-y-2 border-t border-line pt-2.5">
+                      <div className="flex flex-wrap items-center gap-2 font-semibold">
+                        Check-out Signature
+                        <span className="inline-flex items-center gap-1 text-[11px] font-medium text-green-600 dark:text-green-400">
+                          <span className="h-1.5 w-1.5 rounded-full bg-green-500" />
+                          Signature on file
+                        </span>
+                      </div>
+                      {/* eslint-disable-next-line @next/next/no-img-element -- a private, login-protected image: next/image can't fetch it */}
+                      <img
+                        src={`${base}/checkout-signature`}
+                        alt={`Check-out signature of ${name}`}
+                        onError={() => setCheckoutSignatureFailed(true)}
+                        className="h-20 w-full rounded-lg border border-line bg-white object-contain"
+                      />
+                    </div>
                   )}
 
                   {details.documentsSigned.length > 0 && (

@@ -1,8 +1,9 @@
 "use client";
 
 import { createContext, type ReactNode, useCallback, useContext, useEffect, useState } from "react";
-import { api, type ApiVisit, type ApiVisitList } from "@/src/lib/api";
+import { api, errorMessage, type ApiVisit, type ApiVisitList } from "@/src/lib/api";
 import { useCurrentUser } from "@/src/components/dashboard/current-user-provider";
+import { SignOutDialog } from "@/src/components/visitors/sign-out-dialog";
 import type { Visitor, VisitorStatus, VisitorType } from "@/src/lib/mock-visitors";
 
 type Decision = "approve" | "decline";
@@ -17,6 +18,7 @@ type VisitorsContextValue = {
   resolveClearance: (id: string, decision: Decision) => Promise<void>;
   /** Staff let a waiting kiosk visitor in, or turn them away (POST /api/visitors/:id/approve or /decline) */
   resolveApproval: (id: string, decision: Decision) => Promise<boolean>;
+  /** Opens the sign-out window: the visitor signs, and only then is POST /api/visitors/:id/check-out sent */
   signOut: (id: string) => void;
   /** Checks out everyone still in the building (POST /api/visitors/check-out-all). Resolves with how many the server checked out, or null when it failed (see `error`). */
   evacuateAll: () => Promise<number | null>;
@@ -105,20 +107,27 @@ export function VisitorsProvider({ children }: { children: ReactNode }) {
     void refresh();
   }, [refresh]);
 
+  /** the visit whose sign-out window is open (the visitor has not signed yet) */
+  const [signingOut, setSigningOut] = useState<string | null>(null);
+
   const update = (id: string, change: (visitor: Visitor) => Visitor) =>
     setVisitors((current) => current.map((visitor) => (visitor.id === id ? change(visitor) : visitor)));
 
-  /** POST /api/visitors/:id/check-out, then show it as left. On failure, reload so the screen matches the server. */
-  async function checkOut(id: string) {
+  /**
+   * POST /api/visitors/:id/check-out with the visitor's signature, then show it as left.
+   * Resolves with an error message when it failed (the sign-out window shows it), or null when it worked.
+   * On failure the list is reloaded so the screen matches the server.
+   */
+  async function checkOut(id: string, signature: string) {
     try {
-      await api(`/visitors/${encodeURIComponent(id)}/check-out`, { method: "POST" });
+      await api(`/visitors/${encodeURIComponent(id)}/check-out`, { method: "POST", body: { signature } });
       const now = new Date();
       update(id, (visitor) => ({ ...visitor, status: "left", clearance: undefined, checkOut: stamp(now) }));
-      return true;
+      return null;
     } catch (err) {
-      setError((err as Error).message);
+      const message = errorMessage(err, "Couldn't sign the visitor out. Please try again.");
       await refresh();
-      return false;
+      return message;
     }
   }
 
@@ -155,8 +164,8 @@ export function VisitorsProvider({ children }: { children: ReactNode }) {
   }
 
   function signOut(id: string) {
-    // the API writes the VISITOR_SIGN_OUT audit event itself
-    void checkOut(id);
+    // the API writes the VISITOR_SIGN_OUT audit event itself, once the signature is sent
+    setSigningOut(id);
   }
 
   /**
@@ -178,6 +187,17 @@ export function VisitorsProvider({ children }: { children: ReactNode }) {
   return (
     <VisitorsContext.Provider value={{ visitors, loading, error, refresh, resolveClearance, resolveApproval, signOut, evacuateAll }}>
       {children}
+      {signingOut && (
+        <SignOutDialog
+          visitorName={visitors.find((visitor) => visitor.id === signingOut)?.name ?? "Visitor"}
+          onClose={() => setSigningOut(null)}
+          onConfirm={async (signature) => {
+            const problem = await checkOut(signingOut, signature);
+            if (!problem) setSigningOut(null);
+            return problem;
+          }}
+        />
+      )}
     </VisitorsContext.Provider>
   );
 }

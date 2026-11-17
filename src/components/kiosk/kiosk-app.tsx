@@ -7,6 +7,7 @@ import { useTheme } from "@/src/hooks/useTheme";
 import { api, ApiError, type ApiKioskConfig, type ApiKioskLookup, errorMessage } from "@/src/lib/api";
 import { CheckIcon, ClockIcon, CloseIcon, MoonIcon, QrCodeIcon, SunIcon, UserPlusIcon, UserXIcon } from "../icons";
 import { emptyVisitor, type VisitorForm } from "../check-in/types";
+import { SignaturePad } from "../check-in/signature-pad";
 import { Button } from "../ui/button";
 import { PhoneInput } from "../ui/phone-input";
 import { minPhoneDigits } from "@/src/lib/phone-codes";
@@ -388,16 +389,18 @@ function Notice({ title, error = false, children }: { title: string; error?: boo
 function KioskCheckOut({ call, onCancel, onDone }: { call: Call; onCancel: () => void; onDone: (outcome: Outcome) => void }) {
   const [number, setNumber] = useState({ phoneCode: "+234", phone: "" });
   const phoneDigits = number.phone.replace(/\D/g, "");
+  /** the visitor's signature (a PNG data URL), required to check out */
+  const [signature, setSignature] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
   async function submit(event: FormEvent) {
     event.preventDefault();
-    if (submitting) return;
+    if (submitting || !signature) return;
     setSubmitting(true);
     setError("");
     try {
-      const result = await call<{ status: "pending_clearance" | "left" }>("/check-out", { method: "POST", body: { phoneCode: number.phoneCode, phone: phoneDigits } });
+      const result = await call<{ status: "pending_clearance" | "left" }>("/check-out", { method: "POST", body: { phoneCode: number.phoneCode, phone: phoneDigits, signature } });
       onDone(result.status === "left" ? "checked-out" : "checkout-requested");
     } catch (err) {
       setError(errorMessage(err, "Couldn't check you out. Please see the front desk."));
@@ -420,13 +423,17 @@ function KioskCheckOut({ call, onCancel, onDone }: { call: Call; onCancel: () =>
           Enter the phone number you checked in with
         </label>
         <PhoneInput id="kiosk-phone" autoFocus required onChange={setNumber} inputClassName="h-12" />
+        <div className="mt-5">
+          <SignaturePad value={signature} onChange={setSignature} />
+          <p className="mt-1 text-[11px] text-muted">Please sign to confirm you are leaving.</p>
+        </div>
         {error && (
           <p role="alert" className="mt-3 rounded-lg border border-red-500/25 bg-red-500/10 px-3.5 py-2.5 text-[13px] text-red-600 dark:text-red-300">
             {error}
           </p>
         )}
         <div className="mt-6 flex justify-end">
-          <Button type="submit" disabled={phoneDigits.length < minPhoneDigits(number.phoneCode)} loading={submitting} className="min-h-[48px]">
+          <Button type="submit" disabled={phoneDigits.length < minPhoneDigits(number.phoneCode) || !signature} loading={submitting} className="min-h-[48px]">
             {submitting ? "Checking out…" : "Check Out"}
           </Button>
         </div>
