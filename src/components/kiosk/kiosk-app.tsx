@@ -2,9 +2,9 @@
 
 import { useSearchParams } from "next/navigation";
 import { PageLoader } from "@/src/components/ui/page-loader";
-import { type FormEvent, type ReactNode, useCallback, useEffect, useState } from "react";
+import { type FormEvent, type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import { useTheme } from "@/src/hooks/useTheme";
-import { api, ApiError, type ApiKioskConfig, errorMessage } from "@/src/lib/api";
+import { api, ApiError, type ApiKioskConfig, type ApiKioskLookup, errorMessage } from "@/src/lib/api";
 import { CheckIcon, ClockIcon, CloseIcon, MoonIcon, QrCodeIcon, SunIcon, UserPlusIcon, UserXIcon } from "../icons";
 import { emptyVisitor, type VisitorForm } from "../check-in/types";
 import { Button } from "../ui/button";
@@ -193,6 +193,10 @@ export function KioskApp() {
           title="Walk-In Check-In"
           initialVisitor={emptyVisitor}
           startStep={1}
+          // a number the kiosk has seen before: offer to fill in the details they gave last time
+          lookupVisitor={(number) =>
+            call<ApiKioskLookup>("/lookup", { method: "POST", body: { phoneCode: number.phoneCode, phone: number.phone } }).then((result) => result.visitor ?? null)
+          }
           onBack={() => setScreen("home")}
           onCancel={() => setScreen("home")}
           submit={walkIn}
@@ -301,6 +305,8 @@ function Toolbar() {
   const { theme, toggleTheme } = useTheme();
   const [now, setNow] = useState<Date | null>(null);
   const [fullscreen, setFullscreen] = useState(false);
+  /** true once someone chose full screen and until they choose to leave it */
+  const wantFullscreen = useRef(false);
 
   useEffect(() => {
     setNow(new Date());
@@ -311,13 +317,28 @@ function Toolbar() {
   useEffect(() => {
     const changed = () => setFullscreen(Boolean(document.fullscreenElement));
     document.addEventListener("fullscreenchange", changed);
-    return () => document.removeEventListener("fullscreenchange", changed);
+
+    // The camera permission box, the camera itself or a switch of app can knock the tablet out of full screen, and a browser only
+    // allows going back in from a touch. So if full screen was wanted, the next touch anywhere puts it back.
+    const restore = () => {
+      if (wantFullscreen.current && !document.fullscreenElement) void document.documentElement.requestFullscreen().catch(() => {});
+    };
+    document.addEventListener("pointerdown", restore, true);
+    return () => {
+      document.removeEventListener("fullscreenchange", changed);
+      document.removeEventListener("pointerdown", restore, true);
+    };
   }, []);
 
   async function toggleFullscreen() {
     try {
-      if (document.fullscreenElement) await document.exitFullscreen();
-      else await document.documentElement.requestFullscreen();
+      if (document.fullscreenElement) {
+        wantFullscreen.current = false;
+        await document.exitFullscreen();
+      } else {
+        wantFullscreen.current = true;
+        await document.documentElement.requestFullscreen();
+      }
     } catch {
       // some tablets don't allow it; the kiosk works the same
     }

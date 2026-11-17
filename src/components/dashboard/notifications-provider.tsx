@@ -2,6 +2,7 @@
 
 import { createContext, type ReactNode, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { api } from "@/src/lib/api";
+import { useVisitors } from "./visitors-provider";
 
 export type AppNotification = {
   id: string;
@@ -56,6 +57,12 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
   const [readUntil, setReadUntil] = useState(0);
   const [permission, setPermission] = useState<Permission>("unsupported");
   const seen = useRef(new Set<string>());
+  const { refresh } = useVisitors();
+  // the latest refresh, kept in a ref so the live connection below isn't closed and reopened each time it changes
+  const refreshRef = useRef(refresh);
+  useEffect(() => {
+    refreshRef.current = refresh;
+  }, [refresh]);
 
   useEffect(() => {
     setPermission(currentPermission());
@@ -79,7 +86,20 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
       })
       .catch(() => {});
 
+    // Reload the visitor list, but not more than once every moment: several events can arrive together (a check-in and its approval)
+    let refreshTimer: ReturnType<typeof setTimeout> | undefined;
+    const reloadSoon = () => {
+      clearTimeout(refreshTimer);
+      refreshTimer = setTimeout(() => void refreshRef.current(), 300);
+    };
+
     const stream = new EventSource("/backend/notifications/stream");
+    // after a dropped connection comes back, events in between were missed, so reload once to catch up
+    let opened = false;
+    stream.onopen = () => {
+      if (opened) reloadSoon();
+      opened = true;
+    };
     stream.onmessage = (message) => {
       let notification: AppNotification;
       try {
@@ -91,10 +111,25 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
       seen.current.add(notification.id);
       setItems((current) => [notification, ...current].slice(0, MAX_ITEMS));
       void showDesktop(notification);
+      // a check-in, approval, checkout request... changes the visitor list, so the dashboard updates by itself
+      if (notification.category === "Visitor") reloadSoon();
     };
+
+    // Safety net: if the live connection is blocked or buffered somewhere, the list still catches up every 30 seconds while the tab is open,
+    // and straight away when the person comes back to the tab.
+    const poll = setInterval(() => {
+      if (document.visibilityState === "visible") void refreshRef.current();
+    }, 30_000);
+    const onVisible = () => {
+      if (document.visibilityState === "visible") reloadSoon();
+    };
+    document.addEventListener("visibilitychange", onVisible);
 
     return () => {
       cancelled = true;
+      clearTimeout(refreshTimer);
+      clearInterval(poll);
+      document.removeEventListener("visibilitychange", onVisible);
       stream.close();
     };
   }, []);

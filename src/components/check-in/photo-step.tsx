@@ -9,6 +9,10 @@ type PhotoStepProps = {
   photo: string | null;
   /** From the Control Panel: when false the photo can be skipped */
   required: boolean;
+  /** Show "Upload a photo". The kiosk turns it off: the file picker opens the tablet's camera app, which leaves full screen. */
+  allowUpload?: boolean;
+  /** Show a "Skip" button at the top and let the visitor go on without a photo, whatever "Require photo" says (the kiosk does) */
+  allowSkip?: boolean;
   onPhotoChange: (dataUrl: string | null) => void;
   onBack: () => void;
   onNext: () => void;
@@ -45,13 +49,17 @@ function cameraMessage(err: unknown) {
   return "Couldn't start the camera. Try again, or upload a photo instead.";
 }
 
-export function PhotoStep({ photo, required, onPhotoChange, onBack, onNext }: PhotoStepProps) {
+export function PhotoStep({ photo, required: requiredSetting, allowUpload = true, allowSkip = false, onPhotoChange, onBack, onNext }: PhotoStepProps) {
+  const required = requiredSetting && !allowSkip;
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const [live, setLive] = useState(false);
   const [starting, setStarting] = useState(false);
   const [error, setError] = useState("");
+  /** which camera is in use: "user" = front (selfie), "environment" = back */
+  const [facing, setFacing] = useState<"user" | "environment">("user");
+  const [canFlip, setCanFlip] = useState(false);
 
   function stopCamera() {
     streamRef.current?.getTracks().forEach((track) => track.stop());
@@ -71,7 +79,7 @@ export function PhotoStep({ photo, required, onPhotoChange, onBack, onNext }: Ph
     }
   }, [live]);
 
-  async function startCamera() {
+  async function startCamera(side: "user" | "environment" = facing) {
     setError("");
     if (!navigator.mediaDevices?.getUserMedia) {
       setError("The camera isn't available in this browser (it needs HTTPS or localhost). Upload a photo instead.");
@@ -79,10 +87,29 @@ export function PhotoStep({ photo, required, onPhotoChange, onBack, onNext }: Ph
     }
     setStarting(true);
     try {
-      streamRef.current = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 960 } },
-        audio: false,
-      });
+      // always release the previous camera first: many tablets can't open a second one while the first is still running
+      streamRef.current?.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
+      try {
+        streamRef.current = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { exact: side }, width: { ideal: 1280 }, height: { ideal: 960 } },
+          audio: false,
+        });
+      } catch (err) {
+        // this tablet has no camera on that side (or won't say which is which): fall back to whatever camera there is
+        if (err instanceof DOMException && err.name === "NotAllowedError") throw err;
+        streamRef.current = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: side } }, audio: false });
+      }
+      setFacing(side);
+      // the camera list is only readable once permission has been given, so check it now
+      const cameras = (await navigator.mediaDevices.enumerateDevices()).filter((device) => device.kind === "videoinput");
+      setCanFlip(cameras.length > 1);
+      const video = videoRef.current;
+      if (video) {
+        // flipping while the preview is already showing: the <video> exists, so connect the new stream straight away
+        video.srcObject = streamRef.current;
+        void video.play().catch(() => {});
+      }
       setLive(true);
     } catch (err) {
       setError(cameraMessage(err));
@@ -102,9 +129,21 @@ export function PhotoStep({ photo, required, onPhotoChange, onBack, onNext }: Ph
     }
   }
 
+  /** No photo for this visitor: switch the camera off and go straight on */
+  function skip() {
+    stopCamera();
+    onPhotoChange(null);
+    onNext();
+  }
+
   function retake() {
     onPhotoChange(null);
     void startCamera();
+  }
+
+  /** Switch between the front and the back camera */
+  function flipCamera() {
+    void startCamera(facing === "user" ? "environment" : "user");
   }
 
   async function onFile(event: ChangeEvent<HTMLInputElement>) {
@@ -127,7 +166,14 @@ export function PhotoStep({ photo, required, onPhotoChange, onBack, onNext }: Ph
 
   return (
     <div>
-      <h3 className="mb-6 text-base font-semibold">Visitor Photo</h3>
+      <div className="mb-6 flex items-center justify-between gap-3">
+        <h3 className="text-base font-semibold">Visitor Photo</h3>
+        {allowSkip && (
+          <Button variant="secondary" onClick={skip}>
+            Skip <ArrowRightIcon size={16} />
+          </Button>
+        )}
+      </div>
 
       <div className="flex min-h-[260px] flex-col items-center justify-center gap-2.5 overflow-hidden rounded-[14px] border-[1.5px] border-dashed border-line-strong bg-surface-soft p-4 text-center text-sm text-soft">
         {photo ? (
@@ -138,8 +184,8 @@ export function PhotoStep({ photo, required, onPhotoChange, onBack, onNext }: Ph
           </>
         ) : live ? (
           <>
-            {/* mirrored like a selfie preview; the saved photo is not mirrored */}
-            <video ref={videoRef} muted playsInline className="h-[240px] w-full max-w-[320px] -scale-x-100 rounded-xl bg-black object-cover" />
+            {/* the front camera is mirrored like a selfie preview (the saved photo is not); the back camera is shown as it is */}
+            <video ref={videoRef} muted playsInline className={`h-[240px] w-full max-w-[320px] rounded-xl bg-black object-cover ${facing === "user" ? "-scale-x-100" : ""}`} />
             <span>Position the visitor in front of the camera</span>
           </>
         ) : (
@@ -148,7 +194,7 @@ export function PhotoStep({ photo, required, onPhotoChange, onBack, onNext }: Ph
               <CameraIcon size={30} />
             </span>
             <strong className="font-semibold text-fg">Take a visitor photo</strong>
-            <span>Open the camera, or upload a photo from this device</span>
+            <span>{allowUpload ? "Open the camera, or upload a photo from this device" : "Open the camera and take the photo"}</span>
           </>
         )}
       </div>
@@ -167,18 +213,25 @@ export function PhotoStep({ photo, required, onPhotoChange, onBack, onNext }: Ph
             <Button onClick={capture}>
               <CameraIcon size={16} /> Capture Photo
             </Button>
+            {canFlip && (
+              <Button variant="secondary" onClick={flipCamera} disabled={starting}>
+                {starting ? "Switching…" : facing === "user" ? "Use back camera" : "Use front camera"}
+              </Button>
+            )}
             <Button variant="ghost" onClick={stopCamera}>
               Cancel
             </Button>
           </>
         ) : (
           <>
-            <Button variant="secondary" onClick={photo ? retake : startCamera} disabled={starting}>
+            <Button variant="secondary" onClick={photo ? retake : () => void startCamera()} disabled={starting}>
               <CameraIcon size={16} /> {starting ? "Starting camera…" : photo ? "Retake Photo" : "Open Camera"}
             </Button>
-            <Button variant="ghost" onClick={() => fileRef.current?.click()}>
-              Upload a photo
-            </Button>
+            {allowUpload && (
+              <Button variant="ghost" onClick={() => fileRef.current?.click()}>
+                Upload a photo
+              </Button>
+            )}
           </>
         )}
       </div>

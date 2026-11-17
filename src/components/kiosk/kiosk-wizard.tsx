@@ -17,6 +17,8 @@ type WizardProps = {
   initialVisitor: VisitorForm;
   /** 1 = the details form (walk-in), 2 = straight to the photo (the pass already gave the details) */
   startStep: 1 | 2;
+  /** Walk-in: looks a typed phone number up, resolving the details that visitor gave before (or null for a new number) */
+  lookupVisitor?: (number: { phoneCode: string; phone: string }) => Promise<Partial<VisitorForm> | null>;
   /** A line above the steps, e.g. the welcome for a visitor with a pass */
   banner?: ReactNode;
   /** Back from the first step this wizard shows */
@@ -28,7 +30,7 @@ type WizardProps = {
 };
 
 /** The check-in steps on the tablet: details, photo, confirm and sign. The walk-in and QR Express flows both use it. */
-export function KioskWizard({ config, title, initialVisitor, startStep, banner, onBack, onCancel, submit, onDone }: WizardProps) {
+export function KioskWizard({ config, title, initialVisitor, startStep, lookupVisitor, banner, onBack, onCancel, submit, onDone }: WizardProps) {
   const [step, setStep] = useState<number>(startStep);
   const [visitor, setVisitor] = useState<VisitorForm>(initialVisitor);
   const [photo, setPhoto] = useState<string | null>(null);
@@ -73,13 +75,14 @@ export function KioskWizard({ config, title, initialVisitor, startStep, banner, 
             visitor={visitor}
             companies={config.tenants}
             onBack={onBack}
+            lookup={lookupVisitor}
             onNext={(values) => {
               setVisitor(values);
               setStep(2);
             }}
           />
         ) : step === 2 ? (
-          <PhotoStep photo={photo} required={config.requirePhoto} onPhotoChange={setPhoto} onBack={() => (startStep === 1 ? setStep(1) : onBack())} onNext={() => setStep(3)} />
+          <PhotoStep photo={photo} required={config.requirePhoto} allowSkip allowUpload={false} onPhotoChange={setPhoto} onBack={() => (startStep === 1 ? setStep(1) : onBack())} onNext={() => setStep(3)} />
         ) : (
           <ConfirmStep
             visitor={visitor}

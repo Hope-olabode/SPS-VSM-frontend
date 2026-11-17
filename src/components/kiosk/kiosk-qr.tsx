@@ -83,6 +83,9 @@ function ScanStep({ call, onCancel, onFound }: { call: Call; onCancel: () => voi
   const [looking, setLooking] = useState(false);
   const [message, setMessage] = useState("");
   const [typed, setTyped] = useState("");
+  /** front camera by default (a tablet on a stand faces the visitor); the button switches to the back one */
+  const [facing, setFacing] = useState<"user" | "environment">("user");
+  const [canFlip, setCanFlip] = useState(false);
 
   const lookup = useCallback(
     async (code: string) => {
@@ -117,7 +120,8 @@ function ScanStep({ call, onCancel, onFound }: { call: Call; onCancel: () => voi
     (async () => {
       try {
         const read = await createReader();
-        stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: "user" } }, audio: false });
+        stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: facing } }, audio: false });
+        setCanFlip((await navigator.mediaDevices.enumerateDevices()).filter((device) => device.kind === "videoinput").length > 1);
         const video = videoRef.current;
         if (stopped || !video) return stream.getTracks().forEach((track) => track.stop());
         video.srcObject = stream;
@@ -148,7 +152,7 @@ function ScanStep({ call, onCancel, onFound }: { call: Call; onCancel: () => voi
       clearTimeout(timer);
       stream?.getTracks().forEach((track) => track.stop());
     };
-  }, []);
+  }, [facing]);
 
   function submitTyped(event: FormEvent) {
     event.preventDefault();
@@ -171,10 +175,21 @@ function ScanStep({ call, onCancel, onFound }: { call: Call; onCancel: () => voi
 
       {showCamera && (
         <div className="relative my-5 h-[280px] w-[280px] overflow-hidden rounded-[20px] border-2 border-brand bg-black">
-          <video ref={videoRef} muted playsInline aria-label="Camera view for scanning your QR pass" className="h-full w-full -scale-x-100 object-cover" />
+          <video ref={videoRef} muted playsInline aria-label="Camera view for scanning your QR pass" className={`h-full w-full object-cover ${facing === "user" ? "-scale-x-100" : ""}`} />
           {camera === "starting" && <p className="absolute inset-0 grid place-items-center px-4 text-xs text-white/80">Starting the camera…</p>}
           {looking && <p className="absolute inset-0 grid place-items-center bg-black/60 text-sm font-medium text-white">Checking your pass…</p>}
         </div>
+      )}
+      {showCamera && canFlip && (
+        <Button
+          variant="secondary"
+          onClick={() => {
+            setCamera("starting");
+            setFacing(facing === "user" ? "environment" : "user");
+          }}
+        >
+          {facing === "user" ? "Use back camera" : "Use front camera"}
+        </Button>
       )}
       {camera === "denied" && <p role="alert" className="mt-4 text-xs text-amber-600 dark:text-amber-300">The camera is blocked on this tablet, so please type the code below.</p>}
 
